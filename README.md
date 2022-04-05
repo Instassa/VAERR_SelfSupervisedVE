@@ -1,5 +1,5 @@
 # VAERR_SelfSupervisedVE
-## Self-Supervised Apparent Emotion Recognition from Video**
+## Self-Supervised Apparent Emotion Recognition from Video
 
 This code is provided to accompany the homonymous paper for the sake of the reproduceability of the results.
 The metiod is based on the self-supervised learning paradigm, where the _pretext_ architecture is trained on an auxiliary and often unrelated task in prder to provide good initialization or learn useful representations for the _downstream_ target task.
