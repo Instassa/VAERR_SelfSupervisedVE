@@ -59,9 +59,9 @@ class EmotionModelVideo(nn.Module):
             frontend_relu,
             nn.MaxPool3d( kernel_size=(1, 3, 3), stride=(1, 2, 2), padding=(0, 1, 1)))
         
-        # for parameter in self.frontend3D.parameters():
-        #     parameter.requires_grad = False
-        #     print('FROZEN 1')        
+        for parameter in self.frontend3D.parameters():
+            parameter.requires_grad = False
+            print('FROZEN 1')        
 
         self.n_layers = 2
         self.backend_out = 512

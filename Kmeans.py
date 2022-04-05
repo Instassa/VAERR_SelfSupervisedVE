@@ -1,6 +1,5 @@
 import time
 import torch
-from matplotlib import pyplot as plt
 from pykeops.torch import LazyTensor
 
 use_cuda = torch.cuda.is_available()

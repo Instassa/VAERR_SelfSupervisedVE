@@ -138,7 +138,7 @@ class datasetSEWAvideoClassReg(object):
                                         # Normalize(mean, std), 
                                         # TimeOut(0.2),
                                         # SaltAndPepper(0.05)
-                                        Solarization(0.2, 0.9), #
+                                        # Solarization(0.2, 0.9), #
                                         ])
                 # print('TRAIN AUGMENTATIONS')
             else:

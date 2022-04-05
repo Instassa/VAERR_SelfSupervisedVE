@@ -63,25 +63,6 @@ def compute_loss_CCE(pred, targets, criterion, lossType: int, startpts_ar, start
             loss = loss1 + loss2
             print('loss1: ', loss1.item(), 'loss2: ', loss2.item())
 
-    # elif lossType == 5: #composite
-    #         targets = torch.cat((targets[:, :, 0, :], targets[:, :, 1, :]), dim=2)
-    #         # print(pred.size(), targets.size())
-    #         # print(targets[:,-1,0:7].long())
-
-    #         loss1 = 0; loss2 = 0; loss1_2 =0; loss2_2 = 0
-    #         # print('LOSS SHAPES: ', np.shape(pred)[0], np.shape(pred[:,:,0:7]), np.shape(torch.argmax(targets[:,:,0:7].long(), axis=2)))
-    #         for batch in range(np.shape(pred)[0]):
-    #             CE = nn.CrossEntropyLoss()
-    #             loss1 += CE(pred[batch,:,0:7], torch.argmax(targets[batch,:,0:7].long(), axis=1))
-    #             loss2 += CE(pred[batch,:,8:15], torch.argmax(targets[batch,:,8:15].long(), axis=1))
-    #         loss1_2 = criterion(pred[:,:,7], targets[:,:,7])
-    #         loss2_2 = criterion(pred[:,:,15], targets[:,:,15])
-    #         # print('LOSS: ', (loss1.item()/80 + loss2.item()/80 + loss1_2.item()/5 + loss2_2.item()/5), 'loss1: ', loss1.item()/80, 'loss2: ', loss2.item()/80, 'loss1_2: ', loss1_2.item()/5, 'loss2_2: ', loss2_2.item()/5)  
-    #         loss1 = (loss1+0*loss1_2)/(np.shape(pred)[0])
-    #         loss2 = (loss2+0*loss2_2)/(np.shape(pred)[0])
-    #         loss = loss1 + loss2  
-    #         print('LOSS: ', loss.item())  
-
     elif lossType == 5: #composite
             bins =20
             # print(pred.size(), targets.size())
@@ -92,9 +73,6 @@ def compute_loss_CCE(pred, targets, criterion, lossType: int, startpts_ar, start
             loss2_MSE = L(pred[:,:,bins*2+1], targets[:,:,1,bins])
 
             targets = torch.cat((targets[:, :, 0, :], targets[:, :, 1, :]), dim=2)
-
-            # print(pred.size(), targets.size())
-            # print(targets[:,-1,0:7].long())
 
             loss1 = 0; loss2 = 0; 
             # print('LOSS SHAPES: ', np.shape(pred)[0], np.shape(pred[:,:,0:7]), np.shape(torch.argmax(targets[:,:,0:7].long(), axis=2)))
