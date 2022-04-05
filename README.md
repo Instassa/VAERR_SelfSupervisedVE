@@ -9,6 +9,10 @@ In our case we are interested in natural apparent emotional reaction recognition
 ## Architecture
 The part of the architecture pretrained and shared between the pretext and the downstream tasks is the 3D convolutional layer + ResNet18, as shown on the picture below. Followed by a GRU.
 
+<img src="./misc/VideoEmotions_models.png" alt="comparativeArchitectures" width="1100"/>
+
+<!-- ![alt text](https://github.com/Instassa/VAERR_SelfSupervisedVE/blob/main/misc/VideoEmotions_models_.pdf) -->
+
 
 ## Results
 This is the first work using the self-supervised setting in this context, presenting the state-of-the-art results for the natural apparent emotional reaction recognition.
