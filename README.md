@@ -1,10 +1,10 @@
 # VAERR_SelfSupervisedVE
 ## Self-Supervised Apparent Emotion Recognition from Video
 
-This code is provided to accompany the homonymous paper for the sake of the reproduceability of the results.
-The metiod is based on the self-supervised learning paradigm, where the _pretext_ architecture is trained on an auxiliary and often unrelated task in prder to provide good initialization or learn useful representations for the _downstream_ target task.
+This code is provided to accompany the homonymous paper and is meant to serve the reproduceability of the results.
+The metiod is based on the self-supervised learning paradigm, where the _pretext_ architecture is trained on an auxiliary often unrelated task in order to provide good initialization or learn useful representations for the _downstream_ target task.
 
-In our case we are interested in natural apparent emotional reaction recognition (in terms of arousal and valence) based on the video-only input, or VAERR. 
+We are interested specifically in natural apparent emotional reaction recognition (in terms of arousal and valence) based on the video-only input, or VAERR. 
 
 ## Architecture
 The part of the architecture pretrained and shared between the pretext and the downstream tasks is the 3D convolutional layer + ResNet18, as shown on the picture below. Followed by a GRU.
@@ -67,7 +67,7 @@ python -W ignore main.py --lr 0.0003 --epochs 3 --batch-size 5 --workers 20 --cl
 
 ## Evaluation
 
-_Currently main() runs evaluation straight after training the model._
+_Currently `main().py` runs evaluation of the model straight after the training is over._
 
 
 ### For any questions that might arise please contact [Dr. Marija Jegorova](mailto:marijajegorova@fb.com?subject=[GitHub]%20Question%20about%20VAERR)
