@@ -42,15 +42,32 @@ Please specify the the checkpoint you would like to use as ` --model-path='./ckp
 
 To launch the downstream training and subsequent evaluation please run:
 ```
-python -W ignore main.py --lr 0.00007 --epochs 10 --batch-size 5 --workers 20 --clip_length 4 --model-path='./ckpts/ckpt_3Dconv.pth' --dataset='sewa_video' --allow-size-mismatch --loss_type 5 
+python -W ignore main.py --lr 0.0003 --epochs 3 --batch-size 5 --workers 20 --clip_length 4 \
+      --model-path='./ckpts/ckpt_3Dconv.pth' --dataset='sewa_video' --allow-size-mismatch --loss-type 6 --fine-tuning FT \
+      --video-path='/fsx/marijajegorova/pre-process/step2_affine_transformation/sewa13crop_videos_npz_preprocessed_full/‘ \
+      --annot-path='/fsx/marijajegorova/pre-process/step2_affine_transformation/SEWA_annot_binned20/'
 ```
-Specifying the parameters of iterest.
+### Specifying the parameters of iterest.
+- All the normal things, such as `--epochs`, `--batch-size`, and `--lr`, are available.
+- Pretext checpoint is being passed through the model path and is `--allow-size-mismatch` is required to for allowing to share weights between non-identical architectures, just the layers that match in shape and size.
+- Sampling segments of training videos is vonducted through `--clip_length` (in seconds) and `--segments_per_file`.
+- The downstream training can also be controled via `--fine-tuning` variable, specifying what part of the shared weights is frozen (if any), and  `--loss-type`, defined as follows:
+    *  1 is Mean Square Error
+    *  2 is Concordance Coefficient (CCC)
+    *  3 is Cross-Entropy (CE) for discretized labels
+    *  4 is Binary Cross-Entropy - might be useful depending on how the discretization is set up
+    *  5 is a linear combinaton of CCC and CE
+    *  6 is a linear combination of CCC, CE, and MSE
+    *  7 is a linear combinaton of CCC and CE for arousal, but only CCC for valence (in order to compensate for poor arousal detection from video modality)
+    *  8 is a linear combinaton of CCC, CE, and MSE for arousal, but only CCC for valence
+    *  9 is a linear combination of CCC and a normalized cost-sensitive cross-entropy harvested from continuous labels discretized into 20 bins
+    *  10 is a linear combination of 9 and additional MSE loss.
 
-_TODO PARAMETERS_
+- Finally, video and annotation paths should be provided. Videos should be preprocessed via RetinaFace detector and Face Alignment Network (FAN) to detect 68 landmarks, and crop a dquare frame containing all of these landmarks. _(I will try to find a reference / push the exact pre-processing to GitHub at some point)._
 
 ## Evaluation
 
-_TODO_
+_Currently main() runs evaluation straight after training the model._
 
 
 ### For any questions that might arise please contact [Dr. Marija Jegorova](mailto:marijajegorova@fb.com?subject=[GitHub]%20Question%20about%20VAERR)
