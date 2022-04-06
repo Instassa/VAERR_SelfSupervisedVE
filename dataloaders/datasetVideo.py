@@ -5,9 +5,9 @@ import sys
 import numpy as np
 import torch
     
-from utils2 import get_start_end_ind, read_lines_from_file
+from utils.utils2 import get_start_end_ind, read_lines_from_file
 from statistics import mean
-from transforms import (
+from dataloaders.transforms import (
     Scale,
     RandomCrop,
     CenterCrop,
@@ -20,16 +20,16 @@ from transforms import (
     Cutout,
 )
 
-class datasetSEWAvideoClassReg(object):
+class datasetVideo(object):
     
-    def __init__( self, data_part_str: str, data_dir: str, annot_dir: str, annot_type: str, annot_list: list[int], clip_length_in_sec: int, segments_per_file: int, fps: int):
-
+    def __init__( self, data_part_str: str, data_dir: str, annot_dir: str, annot_type: str, annot_list: list[int], clip_length_in_sec: int, segments_per_file: int, fps: int, augs: bool):
         self.bins = 20
         self._data_partition_str = data_part_str
         self._data_dir = data_dir
         self._annot_dir = annot_dir
         self._annot_type = annot_type
         self._annotators_list = annot_list
+        self.augs = augs
 
         self._arousal_files = []
         self._valence_files = []
@@ -116,44 +116,37 @@ class datasetSEWAvideoClassReg(object):
     def load_data_video(self, filename: str):
         try:
             video = np.load(filename)['arr_0']
-            # (mean, std) = (0.493, 0.207) #MSP
-            (mean, std) = (0.421, 0.165) #SEWA I think
-            # (mean, std) = (0.27079829566888647, 0.1581663185206455) #RECOLA
-            crop_size = (80, 80)
-            # print('MAX: ', np.max(video))
-            if np.max(video) > 1:
-                mean255 = 0.0
-                std255 = 255.0
-            else:
-                mean255 = 0.0
-                std255 = 1.0
-            if 'train' in self._data_partition_str:
+            # -- If normalization was not performed at the pre-processing stage:
+            # if 'sewa' in self._data_dir:
+            #     (mean, std) = (0.421, 0.165) #SEWA
+            # elif 'RECOLA' in self._data_dir:
+            #     (mean, std) = (0.27079829566888647, 0.1581663185206455) #RECOLA
+            # elif 'MSP' in self._data_dir:
+            #     (mean, std) = (0.493, 0.207) #MSP
+            # else:
+            #     'WARNING: The dataset is neither SEWA, nor MSP Face, nor RECOLA. No normalization parameters are stored.'
+            # crop_size = (80, 80)
+            # # print('MAX: ', np.max(video))
+            # if np.max(video) > 1:
+            #     mean255 = 0.0
+            #     std255 = 255.0
+            # else:
+            #     mean255 = 0.0
+            #     std255 = 1.0
+            if 'train' in self._data_partition_str and self.augs:
                 self.video_transforms_cv = Compose([
                                         # Normalize( mean255, std255),
-                                         
                                         # RandomCrop(crop_size),
                                         # Cutout(5, 21),#Cutout(5, 28), SEWA
-                                        # HorizontalFlip(0.5),
-                                        
+                                        HorizontalFlip(0.5),
                                         # Normalize(mean, std), 
                                         # TimeOut(0.2),
                                         # SaltAndPepper(0.05)
                                         # Solarization(0.2, 0.9), #
                                         ])
-                # print('TRAIN AUGMENTATIONS')
-            else:
-                self.video_transforms_cv = Compose([
-                                        # Normalize( mean255,std255 ),
-                                        # Normalize(mean, std) 
-                                        ])      
-                # print('TEST AUGMENTATIONS')          
+                video = self.video_transforms_cv(video)
 
-            video = self.video_transforms_cv(video)
-            # print('SIZE: ',(np.shape(video)))
-            
-            # video = torch.from_numpy(video).float()
             video = torch.from_numpy(video).float()
-            # sr = np.load(filename)['sr']
 
             return video 
 
@@ -162,8 +155,6 @@ class datasetSEWAvideoClassReg(object):
             sys.exit()
 
     def load_annotations_orig(self, annot_path: str):
-
-
         try:
             list_of_lines_arousal = read_lines_from_file(annot_path)
                         
@@ -201,31 +192,20 @@ class datasetSEWAvideoClassReg(object):
                         
         except IOError:
             print( f"Error when reading file: {annot_path}")
-            # sys.exit()
             
-        #del listOfLinesArousal[0] # delete headers if using original files
-        # print('L:', len(list_of_lines_arousal))
         annot_list = np.zeros((len(list_of_lines_arousal), self.bins+1))
         time_list = []    
         indx = 0    
         for l in list_of_lines_arousal:
             elem_list = l.split(',')
-            # print(elem_list, 'ELEM_LIST')
-            # elem_list_float = [int(x) for x in elem_list]
             elem_list_float = [int(x) for x in elem_list[:-1]]
             elem_list_float.append(float(elem_list[-1]))
-
-            # print(elem_list_float, 'ELEM_arr')
             
             time_ind = elem_list_float[0]
             time_list.append(time_ind)
             del elem_list_float[0] # first element is timestamp
             
-            selected_annot = elem_list_float#[elem_list_float[x] for x in self._annotators_list]
-            # print('ANN. SELECTED: ', selected_annot)
-            # print('l: ', indx)
-            # mean_annot = mean(selected_annot)
-            # print('ANN. MEAN: ', mean_annot)
+            selected_annot = elem_list_float
             annot_list[indx, :] = selected_annot
             indx +=1
             
@@ -262,20 +242,13 @@ class datasetSEWAvideoClassReg(object):
 
         for l in list_of_lines_arousal:
             elem_list = l.split(',')
-            # print('elem_list: ', elem_list)
             elem_list_float = [float(x) for x in elem_list]
-            # elem_list_float = [int(x) for x in elem_list[:-1]]
-            # elem_list_float.append(float(elem_list[-1]))
 
             time_ind = elem_list_float[0]
             time_list.append(time_ind)
             del elem_list_float[0] # first element is timestamp
-
-            # print(elem_list_float, 'ELEM_arr')
             
-            selected_annot = elem_list_float#[elem_list_float[x] for x in self._annotators_list]
-            # mean_annot = mean(selected_annot)
-            # annot_list.append(mean_annot)
+            selected_annot = elem_list_float
             annot_list[indx, :] = selected_annot
             indx +=1
 
@@ -283,11 +256,7 @@ class datasetSEWAvideoClassReg(object):
             l = int(len(annot_list)/len(files))
         except:
             print(annot_path)
-        # print('LENGTH: ', l)
-        # annot_list = np.array(annot_list).reshape((l, len(files)))
-        # annot_list = np.mean(annot_list, 1)
         time_list = np.array(time_list)
-        # print('annot_list: ', np.shape(annot_list))
                 
         return annot_list, time_list          
     
@@ -303,17 +272,14 @@ class datasetSEWAvideoClassReg(object):
         valence_path = self._valence_files[idx]
         video_path = self._video_files[idx]
         subj_id = self._subj_id_list[idx]
-        # instance_id = self._instance_id_list[idx]
         
         if 'sewa' in self._data_dir:
-            # print('SEWA ANNOtations')
             arousal_annot, timestamps_arousal = self.load_annotations_sewa(arousal_path)
             valence_annot, timestamps_valence = self.load_annotations_sewa(valence_path)
         else:
             arousal_annot, timestamps_arousal = self.load_annotations(arousal_path)
             valence_annot, timestamps_valence = self.load_annotations(valence_path)
             
-        # raw_stream, sr = self.load_data(audio_path)
         raw_video = self.load_data_video(video_path)
 
         if self._clip_length_in_sec != 0:
@@ -326,17 +292,11 @@ class datasetSEWAvideoClassReg(object):
             timestamps_arousal = timestamps_arousal[start_ind:end_ind]
             timestamps_valence = timestamps_valence[start_ind:end_ind]
             
-            
-            # raw_stream = raw_stream[start_ind_in_samples:end_ind_in_samples]
             raw_video = raw_video[start_ind:end_ind]
-
-    
-
-        # sample = {'video': raw_stream, 'sr' : sr, 'arousal_annot': arousal_annot, 'valence_annot': valence_annot , 'subj_id': subj_id,'instance_id': instance_id, 'paths': [audio_path, arousal_path,valence_path], 'timestamps': timestamps_arousal}
+   
         sample = {'video': raw_video, 'arousal_annot': arousal_annot, 'valence_annot': valence_annot , 'subj_id': subj_id, 'paths': [video_path, arousal_path,valence_path], 'timestamps': timestamps_arousal}
         # print('Loaded video sample')
         return sample                                
-
 
     def __len__(self):
         return len(self._video_files)

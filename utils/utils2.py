@@ -75,32 +75,7 @@ def load_model(load_path, model, dataset_type, optimizer=None, allow_size_mismat
         loaded_state_dict = checkpoint["state_dict"]
     else:
         loaded_state_dict = checkpoint["model_state_dict"]
-        # print('loaded model_state_dict')
-    
-    # with open('BYOL_AV_initial.txt', 'w') as f:
-    #     for k, v in loaded_state_dict.items():
-    #         # print(k)
-    #         f.write(k)
-    #         f.write(str(loaded_state_dict[k].shape))
-    #         f.write('\n')
-
-    # for key in list(loaded_state_dict.keys()):
-    #     # loaded_state_dict[key.replace('model.model1.backbone.resnet.stem', 'frontend3D')] = loaded_state_dict.pop(key)
-    #     loaded_state_dict[key.replace('module.backbone', 'trunk')] = loaded_state_dict.pop(key)
-    #     checkpoint["netG"] = loaded_state_dict
-    # torch.save(checkpoint, './ckpts/DINO_ResNet.pth')
-    # #         
-    # for key in list(loaded_state_dict.keys()):
-    #     loaded_state_dict[key.replace('model.model1.backbone.resnet.stem', 'frontend3D')] = loaded_state_dict.pop(key)
-    # for key in list(loaded_state_dict.keys()):
-    #     loaded_state_dict[key.replace('model.model1.backbone.resnet', 'trunk')] = loaded_state_dict.pop(key)
-    # checkpoint["netG"] = loaded_state_dict
-    # torch.save(checkpoint, './ckpts/BYOL_V_LRS3.pth')
-
-    # with open('BYOL_V_LRS3_loaded_state_dict_final.txt', 'w') as f:
-    #     for key in loaded_state_dict:
-    #         f.write(key)
-    #         f.write('\n')   
+ 
 
     if allow_size_mismatch:
         # print(loaded_state_dict[i])
@@ -112,21 +87,6 @@ def load_model(load_path, model, dataset_type, optimizer=None, allow_size_mismat
             if (k in model_state_dict)
             and (model_state_dict[k].shape == loaded_state_dict[k].shape)
         }
-        # for k, v in loaded_state_dict.items():
-        #     print(k)
-
-        # with open('DINO_final_state_dict_2.txt', 'w') as f:
-        #     for k, v in loaded_state_dict.items():
-        #         # print(k)
-        #         f.write(k)
-        #         f.write(str(loaded_state_dict[k].shape))
-        #         f.write('\n')
-
-        # with open('model_state_dict.txt', 'w') as f:
-        #     for key in model_state_dict:
-        #         f.write(key)
-        #         f.write('\n')
-
 
     # -- copy loaded state into current model and, optionally, optimizer
     model.load_state_dict(loaded_state_dict, strict=not allow_size_mismatch)
@@ -134,6 +94,23 @@ def load_model(load_path, model, dataset_type, optimizer=None, allow_size_mismat
         optimizer.load_state_dict(checkpoint["optimizer_state_dict"])
         return model, optimizer, checkpoint["epoch_idx"], checkpoint
     return model
+
+def get_folder_names(master_folder):
+    name_list = os.listdir(master_folder)
+    # print(name_list)
+    for name in name_list:
+        if 'tr' in name or 'Tr' in name:
+            train_folder = str(master_folder +'/' +name)
+        elif 'test' in name or 'Test' in name:
+            test_folder = str(master_folder +'/' +name)
+        elif 'val' in name or 'Val' in name:
+            val_folder = str(master_folder +'/' +name)
+    try:
+        val_folder
+    except:
+        val_folder = test_folder #RECOLA has no test set
+
+    return train_folder, test_folder, val_folder
 
 def get_logger(save_path: str):
     
@@ -150,9 +127,9 @@ def get_logger(save_path: str):
     logger.addHandler(console)
     return logger
 
-def update_logger_batch( args, logger, dset_loader, batch_idx: int, running_loss: float, sum_cor_per_seq: float, sum_ccc_per_seq: float, sum_mae_per_seq: float, sum_mse_per_seq: float, running_all: float):
+def update_logger_batch( args, logger, dset_loader, batch_idx: int, running_loss: float, sum_ccc_per_seq: float, sum_f1_per_seq: float, running_all: float):
     perc_epoch = 100. * batch_idx / (len(dset_loader)-1)
-    logger.info(f'[{running_all}/{len(dset_loader.dataset)} ({perc_epoch}%)] \t Loss: {running_loss / running_all}\tCorr:{sum_cor_per_seq / running_all}\t CCC{sum_ccc_per_seq / running_all}\t MAE:{sum_mae_per_seq / running_all}\t MSE:{sum_mse_per_seq / running_all}')
+    logger.info(f'[{running_all}/{len(dset_loader.dataset)} ({perc_epoch}%)] \t Loss: {running_loss / running_all}\t CCC{sum_ccc_per_seq / running_all}\t F1:{sum_f1_per_seq / running_all}')
 
 
 def save_as_json(d: dict, filepath: str):
@@ -213,9 +190,9 @@ def get_start_end_ind(clip_length_in_sec, fps, len_in_frames):
     try:
         start_ind = np.random.randint(low=0, high=last_ind_allowed, dtype=int)
     except:
-        print(len_in_frames)
-        print(clip_length_in_frames)
-        print(last_ind_allowed)    
+        print()
+        # print(clip_length_in_frames)
+        # print(last_ind_allowed)    
     end_ind = start_ind + clip_length_in_frames
     
     return start_ind, end_ind
@@ -237,53 +214,48 @@ def get_targets(data, output_type: str):
     # print('TARGETS: ', np.shape(targets))
     return targets
 
-def get_median_filt_win(pred, trg):
-
-    #winList = np.arange(5,100,6) #sewa challenge
-    #win_list = np.arange(11,250,12) # recola
-    #winList = np.arange(5,50,6) # recola short window
-    #win_list = np.arange(25,500,26) # sewa
-    win_list = np.arange(25,100,12) # sewa
+# def get_median_filt_win(pred, trg):
+#     win_list = np.arange(25,100,12) # sewa
     
-    best_ccc = get_ccc(pred, trg)
-    best_win = 1
+#     best_ccc = get_ccc(pred, trg)
+#     best_win = 1
     
-    for w in win_list:
-        filtered_pred = medfilt(pred, kernel_size = w)
-        ccc_filt = get_ccc(filtered_pred, trg)
-       #temp.append(ccc_filt)
-        if ccc_filt > best_ccc:
-            best_win = w
+#     for w in win_list:
+#         filtered_pred = medfilt(pred, kernel_size = w)
+#         ccc_filt = get_ccc(filtered_pred, trg)
+#        #temp.append(ccc_filt)
+#         if ccc_filt > best_ccc:
+#             best_win = w
             
-    return best_win
+#     return best_win
 
-def compute_bias(pred,trg):
+# def compute_bias(pred,trg):
     
-    mean_pred = np.mean(pred)
-    mean_targ = np.mean(trg)
+#     mean_pred = np.mean(pred)
+#     mean_targ = np.mean(trg)
     
-    bias = mean_targ - mean_pred
+#     bias = mean_targ - mean_pred
     
-    ccc_no_bias = get_ccc(pred, trg)
-    ccc_with_bias = get_ccc(pred + bias, trg)
+#     ccc_no_bias = get_ccc(pred, trg)
+#     ccc_with_bias = get_ccc(pred + bias, trg)
 
-    if ccc_with_bias > ccc_no_bias:
-        return bias
-    else:
-        return 0
+#     if ccc_with_bias > ccc_no_bias:
+#         return bias
+#     else:
+#         return 0
     
-def compute_scale(pred,trg):
+# def compute_scale(pred,trg):
     
-    st_dev_pred = np.std(pred)
-    st_dev_targ = np.std(trg)
+#     st_dev_pred = np.std(pred)
+#     st_dev_targ = np.std(trg)
     
-    scale = st_dev_targ / st_dev_pred
+#     scale = st_dev_targ / st_dev_pred
     
-    ccc_no_scale = get_ccc(pred, trg)
-    ccc_with_scale = get_ccc(pred * scale, trg)
+#     ccc_no_scale = get_ccc(pred, trg)
+#     ccc_with_scale = get_ccc(pred * scale, trg)
 
-    if ccc_with_scale > ccc_no_scale:
-        return scale
-    else:
-        return 1  
+#     if ccc_with_scale > ccc_no_scale:
+#         return scale
+#     else:
+#         return 1  
 

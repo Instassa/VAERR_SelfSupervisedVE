@@ -21,7 +21,7 @@ class GRU(nn.Module):
     ):
         super().__init__()
         self.hidden_size = hidden_size
-        print(f"GRU hidden size {hidden_size}")
+        # print(f"GRU hidden size {hidden_size}")
         self.num_layers = num_layers
         self.every_frame = every_frame
         self.gru = nn.GRU(
