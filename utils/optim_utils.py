@@ -8,11 +8,18 @@ def change_lr_on_optimizer(optimizer, lr):
         param_group['lr'] = lr
 
 class CosineScheduler:
-    def __init__(self, init_lr: float, epochs: int):
+    def __init__(self, optimizer, init_lr: float, epochs: int):
         self.init_lr = init_lr
         self.epochs = epochs
+        self.optimizer = optimizer
 
-    def adjust_lr(self, optimizer, epoch):
+    def state_dict(self):
+        return {key: value for key, value in self.__dict__.items() if key != 'optimizer'}
+
+    def load_state_dict(self, state_dict) -> None:
+        self.__dict__.update(state_dict)
+
+    def step(self, optimizer, epoch):
         reduction_ratio = 0.5 * (1 + math.cos(math.pi * epoch / self.epochs))
         change_lr_on_optimizer(optimizer, self.init_lr*reduction_ratio)
 

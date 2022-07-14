@@ -5,16 +5,19 @@ from dataloaders.datasetVideo import datasetVideo
 
 
 def get_data_loaders(args): 
-    if args.n_classes > 15:
+    if args.n_classes > 5:
         print('-------------classification mode---------------')
         dsets = {partition: datasetVideo(data_part_str=partition,   
                                 data_dir=args.video_dir[partition],  
-                                annot_dir=args.annot_dir[partition],   
+                                # annot_dir=args.annot_dir[partition],   
+                                cannot_dir=args.cannot_dir[partition],
                                 annot_type = args.annot_type,
+                                output_type = args.output_type,
                                 annot_list= args.annot_list,
                                 clip_length_in_sec = args.clip_length_dict[partition],
                                 segments_per_file = args.segments_per_file_dict[partition],
                                 augs = args.augment,
+                                every_frame = args.every_frame,
                                 fps = args.fps) for partition in ['train','val','test']}  
     else:
         print('Type of the dataset is not recognized. Please refer to dataloaders.py')  

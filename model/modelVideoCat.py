@@ -12,16 +12,15 @@ def threeD_to_2D_tensor(x):
     x = x.transpose(1, 2)
     return x.reshape(n_batch*s_time, n_channels, sx, sy)
 
-class EmotionModelVideo(nn.Module):
+class CategoricalOnlyEmotionModelVideo(nn.Module):
     
     def __init__(
         self,
         inputDim: int = 512,
         hiddenDim: int = 256,
-        n_classes: int = 500,
-        bins: int = 10,
+        n_classes: int = 6,
         fine_tuning: str = "FT",
-        every_frame: bool = True,
+        every_frame: bool = False,
         device=None,
         relu_type: str = "relu",
         gamma_zero: bool = False,
@@ -30,15 +29,14 @@ class EmotionModelVideo(nn.Module):
 
         super().__init__()
         self.relu_type = relu_type
-
+        print('INPUT: ', inputDim)
         self.inputDim = inputDim
         self.hiddenDim = hiddenDim
         self.n_classes = n_classes
         self.every_frame = every_frame
         self.device = device
-        self.bins=bins
         self.fine_tuning = fine_tuning
-
+    
 
         self.frontend_nout = 64
         self.backend_out = 512
@@ -69,6 +67,7 @@ class EmotionModelVideo(nn.Module):
                 parameter.requires_grad = False
                  
 
+        print('EVERY FRAME: ', self.every_frame)
         self.n_layers = 2
         self.backend_out = 512
         self.gru = GRU(
@@ -79,14 +78,7 @@ class EmotionModelVideo(nn.Module):
             self.every_frame,
             device=self.device,
         )
-        self.gru2 = GRU(
-            self.backend_out,
-            self.hiddenDim,
-            self.n_layers,
-            self.n_classes,
-            self.every_frame,
-            device=self.device,
-        )
+
         self._initialize_weights_randomly()
 
     def forward(self, x, lengths):
@@ -101,13 +93,12 @@ class EmotionModelVideo(nn.Module):
         x = self.trunk(x)
         x = x.view(B, Tnew, x.size(1))
         
-        x = self.gru(x, lengths)
-        x1, x1_reg, x2, x2_reg = torch.split(x, [self.bins, 1, self.bins, 1], dim=2)
-        x1 = torch.softmax(x1, dim=2)
-        x_reg = torch.cat((x1_reg, x2_reg), dim=2)
-        x1_reg, x2_reg = torch.split(torch.sigmoid(x_reg) * 2 - 1.0, [1,1], dim=2)
-        x2 = torch.softmax(x2, dim=2)
-        x = torch.cat((x1, x1_reg, x2, x2_reg), dim=2)
+        x_cat = self.gru(x, lengths)
+        # print(x_cat.size())
+        if self.every_frame == False:
+            x = torch.softmax(x_cat, dim=1)
+        else:
+            x = torch.softmax(x_cat, dim=2)
         return x
 
     def _initialize_weights_randomly(self):

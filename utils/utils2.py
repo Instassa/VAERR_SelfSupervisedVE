@@ -8,7 +8,7 @@ import logging
 import json
 import math
 import shutil
-from scipy.signal import medfilt
+# from scipy.signal import medfilt
 import numpy as np
 
 
@@ -25,6 +25,30 @@ def get_ccc(a: float, b: float):
     )
     return ccc
 
+def get_accuracy(a, b):
+    # print('SHAPE A and B:', np.shape(a), np.shape(b))
+    acc = []
+    for i in range(np.shape(a)[0]):
+        # print('A: ', np.argmax(a[i, :, :], axis=1))
+        # print('B : ', np.argmax(b[i, :, :], axis=1))
+        # print(np.sum(np.argmax(a[i, :, :], axis=1) == np.argmax(b[i, :, :], axis=1)))
+        acc.append(np.sum(np.argmax(a[i, :, :], axis=1) == np.argmax(b[i, :, :], axis=1)))
+    accuracy_per_line = np.sum(acc)/(np.shape(a)[0]*np.shape(a)[1])
+    # print(accuracy_per_line)
+    return accuracy_per_line
+
+def get_accuracy_torch(a, b):
+    # print('TORCH SHAPE A and B:', np.shape(a), np.shape(b))
+    acc = 0
+    for i in range(a.size()[0]):
+        # print(torch.argmax((a[i, :, :]), axis=1))
+        # print(torch.mean(((a[i, :, :].unsqueeze(0) == b[i, :, :].unsqueeze(1)).all(dim=2).any(dim=0)).type(torch.cuda.FloatTensor)))
+        acc += torch.mean((torch.eq(torch.argmax((a[i, :, :]), axis=1), torch.argmax((b[i, :, :]), axis=1))).type(torch.cuda.FloatTensor))
+        # print(acc)
+        # acc += torch.mean(((a[i, :, :].unsqueeze(0) == b[i, :, :].unsqueeze(1)).all(dim=2).any(dim=0)).type(torch.cuda.FloatTensor))
+    accuracy_per_line = acc/(a.size()[0]*a.size()[1])
+    
+    return accuracy_per_line
 
 def convert_str_list_to_float(list_of_str_lines: list[str]) -> np.ndarray:
 
@@ -97,8 +121,9 @@ def load_model(load_path, model, dataset_type, optimizer=None, allow_size_mismat
 
 def get_folder_names(master_folder):
     name_list = os.listdir(master_folder)
-    # print(name_list)
+    print(name_list)
     for name in name_list:
+        # if 'bal' in name:
         if 'tr' in name or 'Tr' in name:
             train_folder = str(master_folder +'/' +name)
         elif 'test' in name or 'Test' in name:
@@ -130,6 +155,11 @@ def get_logger(save_path: str):
 def update_logger_batch( args, logger, dset_loader, batch_idx: int, running_loss: float, sum_ccc_per_seq: float, sum_f1_per_seq: float, running_all: float):
     perc_epoch = 100. * batch_idx / (len(dset_loader)-1)
     logger.info(f'[{running_all}/{len(dset_loader.dataset)} ({perc_epoch}%)] \t Loss: {running_loss / running_all}\t CCC{sum_ccc_per_seq / running_all}\t F1:{sum_f1_per_seq / running_all}')
+
+def update_logger_batch_cat( args, logger, dset_loader, batch_idx: int, running_loss: float, sum_ccc_per_seq: float, sum_CE: float, sum_ACC: float, running_all: float):
+    perc_epoch = 100. * batch_idx / (len(dset_loader)-1)
+    logger.info(f'[{running_all}/{len(dset_loader.dataset)} ({perc_epoch}%)] \t Loss: {running_loss / running_all}\t CCC{sum_ccc_per_seq / running_all}\t CE_cat:{sum_CE }\t ACC_cat:{sum_ACC }')
+
 
 
 def save_as_json(d: dict, filepath: str):
@@ -190,7 +220,7 @@ def get_start_end_ind(clip_length_in_sec, fps, len_in_frames):
     try:
         start_ind = np.random.randint(low=0, high=last_ind_allowed, dtype=int)
     except:
-        print()
+        print('Start_ind not found')
         # print(clip_length_in_frames)
         # print(last_ind_allowed)    
     end_ind = start_ind + clip_length_in_frames
@@ -204,15 +234,23 @@ def get_targets(data, output_type: str):
         
     if output_type == 'Arousal':
         targets = data['arousal_annot']
+        return targets
     elif output_type == 'Valence':
         targets = data['valence_annot']
+        return targets
     elif output_type == 'Arousal_Valence':
         t1 = data['arousal_annot']
         # print('T1:', np.shape(t1))
         t2 = data['valence_annot']
         targets = torch.stack([t1, t2], dim = 2)
-    # print('TARGETS: ', np.shape(targets))
-    return targets
+        return targets
+    elif output_type == 'Categorical':
+        # t1 = data['arousal_annot']
+        # t2 = data['valence_annot']
+        t3 = data['categorical_annot']
+        # targets = torch.stack([t1, t2], dim = 2)
+        t3 = torch.stack([t3], dim = 2)
+        return t3
 
 # def get_median_filt_win(pred, trg):
 #     win_list = np.arange(25,100,12) # sewa
