@@ -8,7 +8,7 @@ This is a version of the code in the main branch. The differences being:
 
 ## Results
 Produced ~66.5% accuracy on a particular version of CREMA dataset test set.
-The pre-trained checkpoint that could be used as an inference initialization can be found [here](https://drive.google.com/file/d/1GxR74bBnuJDSeXFjmUoeV_seiV2Lxmod/view?usp=sharing).
+The pre-trained checkpoint that could be used as an inference initialization can be found [here](https://drive.google.com/file/d/1uNja3HC62faeIogz35SF2aT2mIDVDNNa/view?usp=sharing).
 
 
 ## Setting up the environment
